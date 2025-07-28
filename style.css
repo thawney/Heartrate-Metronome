@@ -37,6 +37,22 @@
     border-color: #3b82f6;
 }
 
+.channel-card {
+    border-left: 4px solid;
+    transition: all 0.2s ease;
+}
+
+.channel-card.channel-1 { border-left-color: #ef4444; }
+.channel-card.channel-2 { border-left-color: #f97316; }
+.channel-card.channel-3 { border-left-color: #eab308; }
+.channel-card.channel-4 { border-left-color: #22c55e; }
+.channel-card.channel-5 { border-left-color: #3b82f6; }
+
+.channel-card.playing {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    transform: scale(1.02);
+}
+
 /* Add smooth transitions */
 button, input, select {
     transition: all 0.2s ease;
@@ -53,6 +69,21 @@ input:focus, select:focus, button:focus {
 canvas {
     width: 100%;
     height: 100%;
+}
+
+/* Mode toggle styling - FIXED: Added proper styling for 5-beat mode button */
+.mode-toggle {
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+}
+
+#five-beat-mode-btn {
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+}
+
+#five-beat-mode-btn:hover {
+    background: linear-gradient(45deg, #5a67d8 0%, #6b46c1 100%);
 }
 
 /* Pulse effect for the update button when auto-updating */

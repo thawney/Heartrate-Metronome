@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heart & Breathing Rate MIDI Metronome</title>
+    <title>Heart & Breathing Rate MIDI Metronome - 5-Beat Mode</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
@@ -11,48 +11,313 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto p-4">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-6xl mx-auto">
             <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
                 <div class="p-6">
                     <h1 class="text-2xl font-bold text-center mb-4">Heart & Breathing Rate MIDI Metronome</h1>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Heart Rate Display Panel -->
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <div class="flex items-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 heart-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                </svg>
-                                <h2 class="text-lg font-semibold ml-2 text-red-500">Heart Rate Monitor</h2>
+                    <!-- Mode Toggle -->
+                    <div class="flex justify-center mb-6">
+                        <div class="bg-gray-200 rounded-lg p-1 flex">
+                            <button id="single-mode-btn" class="px-4 py-2 rounded-md bg-white shadow-sm text-sm font-medium">
+                                Single Mode
+                            </button>
+                            <button id="five-beat-mode-btn" class="px-4 py-2 rounded-md text-sm font-medium text-white">
+                                5-Beat Test Mode
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Single Mode Content -->
+                    <div id="single-mode-content">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Heart Rate Display Panel -->
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="flex items-center mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 heart-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                    </svg>
+                                    <h2 class="text-lg font-semibold ml-2 text-red-500">Heart Rate Monitor</h2>
+                                </div>
+
+                                <div class="text-center">
+                                    <div id="heart-rate" class="text-5xl font-bold mb-2 text-red-500">-- BPM</div>
+                                    <div id="last-update" class="text-sm text-gray-500 mb-4">Last updated: Never</div>
+
+                                    <div class="h-32 mb-4">
+                                        <canvas id="heart-rate-chart"></canvas>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="text-center">
-                                <div id="heart-rate" class="text-5xl font-bold mb-2 text-red-500">-- BPM</div>
-                                <div id="last-update" class="text-sm text-gray-500 mb-4">Last updated: Never</div>
+                            <!-- Breathing Rate Display Panel -->
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="flex items-center mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 breathing-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: #ffc60a;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10L12 13 9 10M12 3v10" />
+                                    </svg>
+                                    <h2 class="text-lg font-semibold ml-2" style="color: #ffc60a;">Breathing Rate Monitor</h2>
+                                </div>
 
-                                <div class="h-32 mb-4">
-                                    <canvas id="heart-rate-chart"></canvas>
+                                <div class="text-center">
+                                    <div id="breathing-rate" class="text-5xl font-bold mb-2" style="color: #ffc60a;">-- breaths/min</div>
+                                    <p class="text-sm text-gray-600 mb-4">Controls pitch modulation</p>
+
+                                    <div class="h-32 mb-4">
+                                        <canvas id="breathing-rate-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5-Beat Mode Content -->
+                    <div id="five-beat-mode-content" class="hidden">
+                        <div class="grid grid-cols-1 xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2 gap-4 mb-6">
+                            <!-- Channel 1 -->
+                            <div class="channel-card channel-1 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-red-500">Channel 1</h3>
+                                        <select id="ch1-midi-channel" class="text-xs border rounded px-1 py-0.5">
+                                            <option value="0">MIDI Ch 1</option>
+                                            <option value="1">MIDI Ch 2</option>
+                                            <option value="2">MIDI Ch 3</option>
+                                            <option value="3">MIDI Ch 4</option>
+                                            <option value="4">MIDI Ch 5</option>
+                                            <option value="5">MIDI Ch 6</option>
+                                            <option value="6">MIDI Ch 7</option>
+                                            <option value="7">MIDI Ch 8</option>
+                                            <option value="8">MIDI Ch 9</option>
+                                            <option value="9">MIDI Ch 10</option>
+                                            <option value="10">MIDI Ch 11</option>
+                                            <option value="11">MIDI Ch 12</option>
+                                            <option value="12">MIDI Ch 13</option>
+                                            <option value="13">MIDI Ch 14</option>
+                                            <option value="14">MIDI Ch 15</option>
+                                            <option value="15">MIDI Ch 16</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">❤️ Heart Rate (Tempo)</div>
+                                            <div class="text-xl font-bold text-red-500" id="ch1-heart-rate">-- BPM</div>
+                                        </div>
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">🫁 Breathing (Pitch)</div>
+                                            <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch1-breathing-rate">-- br/min</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-2">API Source</div>
+                                    <label class="flex items-center justify-center mt-2 text-xs">
+                                        <input type="checkbox" id="ch1-enabled" class="mr-1" checked>
+                                        <span>Enabled</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Channel 2 -->
+                            <div class="channel-card channel-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-orange-500">Channel 2</h3>
+                                        <select id="ch2-midi-channel" class="text-xs border rounded px-1 py-0.5">
+                                            <option value="0">MIDI Ch 1</option>
+                                            <option value="1" selected>MIDI Ch 2</option>
+                                            <option value="2">MIDI Ch 3</option>
+                                            <option value="3">MIDI Ch 4</option>
+                                            <option value="4">MIDI Ch 5</option>
+                                            <option value="5">MIDI Ch 6</option>
+                                            <option value="6">MIDI Ch 7</option>
+                                            <option value="7">MIDI Ch 8</option>
+                                            <option value="8">MIDI Ch 9</option>
+                                            <option value="9">MIDI Ch 10</option>
+                                            <option value="10">MIDI Ch 11</option>
+                                            <option value="11">MIDI Ch 12</option>
+                                            <option value="12">MIDI Ch 13</option>
+                                            <option value="13">MIDI Ch 14</option>
+                                            <option value="14">MIDI Ch 15</option>
+                                            <option value="15">MIDI Ch 16</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">❤️ Heart Rate (Tempo)</div>
+                                            <div class="text-xl font-bold text-orange-500" id="ch2-heart-rate">-- BPM</div>
+                                        </div>
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">🫁 Breathing (Pitch)</div>
+                                            <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch2-breathing-rate">-- br/min</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <label class="flex items-center justify-center mt-2 text-xs">
+                                        <input type="checkbox" id="ch2-enabled" class="mr-1" checked>
+                                        <span>Enabled</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Channel 3 -->
+                            <div class="channel-card channel-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-yellow-500">Channel 3</h3>
+                                        <select id="ch3-midi-channel" class="text-xs border rounded px-1 py-0.5">
+                                            <option value="0">MIDI Ch 1</option>
+                                            <option value="1">MIDI Ch 2</option>
+                                            <option value="2" selected>MIDI Ch 3</option>
+                                            <option value="3">MIDI Ch 4</option>
+                                            <option value="4">MIDI Ch 5</option>
+                                            <option value="5">MIDI Ch 6</option>
+                                            <option value="6">MIDI Ch 7</option>
+                                            <option value="7">MIDI Ch 8</option>
+                                            <option value="8">MIDI Ch 9</option>
+                                            <option value="9">MIDI Ch 10</option>
+                                            <option value="10">MIDI Ch 11</option>
+                                            <option value="11">MIDI Ch 12</option>
+                                            <option value="12">MIDI Ch 13</option>
+                                            <option value="13">MIDI Ch 14</option>
+                                            <option value="14">MIDI Ch 15</option>
+                                            <option value="15">MIDI Ch 16</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">❤️ Heart Rate (Tempo)</div>
+                                            <div class="text-xl font-bold text-yellow-500" id="ch3-heart-rate">-- BPM</div>
+                                        </div>
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">🫁 Breathing (Pitch)</div>
+                                            <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch3-breathing-rate">-- br/min</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <label class="flex items-center justify-center mt-2 text-xs">
+                                        <input type="checkbox" id="ch3-enabled" class="mr-1" checked>
+                                        <span>Enabled</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Channel 4 -->
+                            <div class="channel-card channel-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-green-500">Channel 4</h3>
+                                        <select id="ch4-midi-channel" class="text-xs border rounded px-1 py-0.5">
+                                            <option value="0">MIDI Ch 1</option>
+                                            <option value="1">MIDI Ch 2</option>
+                                            <option value="2">MIDI Ch 3</option>
+                                            <option value="3" selected>MIDI Ch 4</option>
+                                            <option value="4">MIDI Ch 5</option>
+                                            <option value="5">MIDI Ch 6</option>
+                                            <option value="6">MIDI Ch 7</option>
+                                            <option value="7">MIDI Ch 8</option>
+                                            <option value="8">MIDI Ch 9</option>
+                                            <option value="9">MIDI Ch 10</option>
+                                            <option value="10">MIDI Ch 11</option>
+                                            <option value="11">MIDI Ch 12</option>
+                                            <option value="12">MIDI Ch 13</option>
+                                            <option value="13">MIDI Ch 14</option>
+                                            <option value="14">MIDI Ch 15</option>
+                                            <option value="15">MIDI Ch 16</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">❤️ Heart Rate (Tempo)</div>
+                                            <div class="text-xl font-bold text-green-500" id="ch4-heart-rate">-- BPM</div>
+                                        </div>
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">🫁 Breathing (Pitch)</div>
+                                            <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch4-breathing-rate">-- br/min</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <label class="flex items-center justify-center mt-2 text-xs">
+                                        <input type="checkbox" id="ch4-enabled" class="mr-1" checked>
+                                        <span>Enabled</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Channel 5 -->
+                            <div class="channel-card channel-5 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div class="text-center">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="font-semibold text-blue-500">Channel 5</h3>
+                                        <select id="ch5-midi-channel" class="text-xs border rounded px-1 py-0.5">
+                                            <option value="0">MIDI Ch 1</option>
+                                            <option value="1">MIDI Ch 2</option>
+                                            <option value="2">MIDI Ch 3</option>
+                                            <option value="3">MIDI Ch 4</option>
+                                            <option value="4" selected>MIDI Ch 5</option>
+                                            <option value="5">MIDI Ch 6</option>
+                                            <option value="6">MIDI Ch 7</option>
+                                            <option value="7">MIDI Ch 8</option>
+                                            <option value="8">MIDI Ch 9</option>
+                                            <option value="9">MIDI Ch 10</option>
+                                            <option value="10">MIDI Ch 11</option>
+                                            <option value="11">MIDI Ch 12</option>
+                                            <option value="12">MIDI Ch 13</option>
+                                            <option value="13">MIDI Ch 14</option>
+                                            <option value="14">MIDI Ch 15</option>
+                                            <option value="15">MIDI Ch 16</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">❤️ Heart Rate (Tempo)</div>
+                                            <div class="text-xl font-bold text-blue-500" id="ch5-heart-rate">-- BPM</div>
+                                        </div>
+                                        <div class="bg-white p-2 rounded border">
+                                            <div class="text-xs text-gray-600 mb-1">🫁 Breathing (Pitch)</div>
+                                            <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch5-breathing-rate">-- br/min</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <label class="flex items-center justify-center mt-2 text-xs">
+                                        <input type="checkbox" id="ch5-enabled" class="mr-1" checked>
+                                        <span>Enabled</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Breathing Rate Display Panel -->
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <!-- Auto-update and Loop Information -->
+                        <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 breathing-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: #ffc60a;">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10L12 13 9 10M12 3v10" />
-                                </svg>
-                                <h2 class="text-lg font-semibold ml-2" style="color: #ffc60a;">Breathing Rate Monitor</h2>
+                                <i data-feather="info" class="text-gray-700"></i>
+                                <h2 class="text-lg font-semibold ml-2">5-Beat Mode Data Sources</h2>
                             </div>
-
-                            <div class="text-center">
-                                <div id="breathing-rate" class="text-5xl font-bold mb-2" style="color: #ffc60a;">-- breaths/min</div>
-                                <p class="text-sm text-gray-600 mb-4">Controls pitch modulation</p>
-
-                                <div class="h-32 mb-4">
-                                    <canvas id="breathing-rate-chart"></canvas>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                                <div class="text-center p-2 bg-red-50 rounded">
+                                    <strong class="text-red-600">Channel 1</strong><br>
+                                    Live API Data
+                                </div>
+                                <div class="text-center p-2 bg-orange-50 rounded">
+                                    <strong class="text-orange-600">Channel 2</strong><br>
+                                    Random Loop + Variation
+                                </div>
+                                <div class="text-center p-2 bg-yellow-50 rounded">
+                                    <strong class="text-yellow-600">Channel 3</strong><br>
+                                    Random Loop + Variation
+                                </div>
+                                <div class="text-center p-2 bg-green-50 rounded">
+                                    <strong class="text-green-600">Channel 4</strong><br>
+                                    Random Loop + Variation
+                                </div>
+                                <div class="text-center p-2 bg-blue-50 rounded">
+                                    <strong class="text-blue-600">Channel 5</strong><br>
+                                    Random Loop + Variation
                                 </div>
                             </div>
+                            
+                            <p class="text-xs text-gray-600 mt-3 text-center">
+                                Channels 2-5 randomly select from any pre-recorded loop, switching to a new random loop when each one finishes
+                            </p>
                         </div>
                     </div>
 
@@ -149,13 +414,27 @@
 
             <div class="bg-white p-4 rounded-lg shadow-md mb-6">
                 <h2 class="text-xl font-semibold mb-3">How to Use</h2>
-                <ol class="list-decimal ml-6 space-y-2">
-                    <li>Heart rate controls the tempo of the metronome</li>
-                    <li>Breathing rate controls pitch modulation</li>
-                    <li>Select a MIDI device or use the built-in audio</li>
-                    <li>Auto-update is enabled by default to continuously fetch the latest data</li>
-                    <li>Click "Play" to start the metronome</li>
-                </ol>
+                <div id="single-mode-instructions">
+                    <ol class="list-decimal ml-6 space-y-2">
+                        <li>Heart rate controls the tempo of the metronome</li>
+                        <li>Breathing rate controls pitch modulation</li>
+                        <li>Select a MIDI device or use the built-in audio</li>
+                        <li>Auto-update is enabled by default to continuously fetch the latest data</li>
+                        <li>Click "Play" to start the metronome</li>
+                    </ol>
+                </div>
+                <div id="five-beat-instructions" class="hidden">
+                    <ol class="list-decimal ml-6 space-y-2">
+                        <li><strong>5-Beat Test Mode:</strong> Creates 5 independent MIDI channels with different rhythms</li>
+                        <li><strong>Channel 1:</strong> Uses live API data as the master rhythm</li>
+                        <li><strong>Channels 2-5:</strong> Use pre-recorded biometric loops with small random variations</li>
+                        <li><strong>Each Channel:</strong> Has its own heart rate (tempo) and breathing rate (pitch modulation)</li>
+                        <li><strong>Automatic Loops:</strong> Channels 2-5 cycle through different pre-recorded sessions</li>
+                        <li><strong>MIDI Routing:</strong> Each channel can send to any MIDI channel (1-16)</li>
+                        <li><strong>Enable/Disable:</strong> Toggle individual channels on/off during playback</li>
+                        <li><strong>Random Variation:</strong> ±5% variation added to prevent repetitive patterns</li>
+                    </ol>
+                </div>
                 <div class="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
                     <p><strong>How the interpolation works:</strong> The app smoothly transitions between heart rate and breathing rate values to prevent sudden jumps in tempo and pitch, creating a more natural musical experience.</p>
                 </div>
