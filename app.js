@@ -49,11 +49,6 @@ function initializeApp() {
     const singleModeInstructions = document.getElementById('single-mode-instructions');
     const fiveBeatInstructions = document.getElementById('five-beat-instructions');
 
-    // 5-Beat mode elements (removed data source selection)
-    // const dataSourceSelect = document.getElementById('data-source-select');
-    // const loopOffsetSlider = document.getElementById('loop-offset');
-    // const offsetValueDisplay = document.getElementById('offset-value');
-
     // Chart setup
     const ctx = document.getElementById('heart-rate-chart').getContext('2d');
     const heartRateChart = new Chart(ctx, {
@@ -133,6 +128,7 @@ function initializeApp() {
     let currentBreathingRate = null;
     let targetBreathingRate = null;
     let nextNoteTime = 0;
+    let singleModeTimerID = null;
     
     // 5-Beat mode state
     let channels = [
@@ -143,8 +139,6 @@ function initializeApp() {
         { id: 5, heartRate: null, breathingRate: null, currentHeartRate: null, targetHeartRate: null, currentBreathingRate: null, targetBreathingRate: null, nextNoteTime: 0, timerID: null, enabled: true, midiChannel: 4 }
     ];
     
-    // Remove the old updatePreRecordedChannels function - no longer needed
-
     // Initialize loop indices with random starting points for variation
     let loopIndices = { 
         loop1: Math.floor(Math.random() * prerecordedData.loop1.heart_rate.length), 
@@ -449,8 +443,6 @@ function initializeApp() {
         console.log("updateChannelVariations completed, all channels updated");
     }
 
-    // Remove old updatePreRecordedChannels function since we don't need it anymore
-
     // Update history functions (for single mode)
     function updateHeartRateHistory(rate, timestamp) {
         heartRateHistory.push({ rate: rate, timestamp: timestamp });
@@ -566,7 +558,7 @@ function initializeApp() {
             const safeNote = Math.max(0, Math.min(127, roundedNote));
             
             try {
-                // Send MIDI note immediately, not with timestamp
+                // Send MIDI note immediately with longer duration
                 selectedMidiOutput.send([0x90, safeNote, 100]);
                 setTimeout(() => {
                     try {
@@ -574,7 +566,7 @@ function initializeApp() {
                     } catch (err) {
                         console.error("Error sending MIDI note off:", err);
                     }
-                }, 100);
+                }, 300); // Increased from 100ms to 300ms
             } catch (err) {
                 console.error("Error sending MIDI note on:", err);
                 playAudioNote(adjustedNote, time);
@@ -610,7 +602,7 @@ function initializeApp() {
             const safeNote = Math.max(0, Math.min(127, roundedNote));
             
             try {
-                // Send MIDI note immediately, not with timestamp
+                // Send MIDI note immediately with longer duration
                 selectedMidiOutput.send([0x90 + midiChannel, safeNote, 100]);
                 setTimeout(() => {
                     try {
@@ -618,7 +610,7 @@ function initializeApp() {
                     } catch (err) {
                         console.error("Error sending MIDI note off:", err);
                     }
-                }, 100);
+                }, 300); // Increased from 100ms to 300ms
             } catch (err) {
                 console.error("Error sending MIDI note on:", err);
                 playAudioNote(adjustedNote, time);
@@ -643,26 +635,34 @@ function initializeApp() {
 
         const frequency = 440 * Math.pow(2, (note - 69) / 12);
         osc.frequency.value = frequency;
-        gainNode.gain.value = volume;
+        
+        // Create envelope to prevent clicks
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(volume, time + 0.01); // 10ms attack
+        gainNode.gain.setValueAtTime(volume, time + 0.25); // Hold for 250ms
+        gainNode.gain.linearRampToValueAtTime(0, time + 0.3); // 50ms release
 
         osc.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
         osc.start(time);
-        osc.stop(time + 0.1);
+        osc.stop(time + 0.3); // Total duration 300ms to match MIDI
     }
 
-    // Single mode scheduler
+    // Single mode scheduler - FIXED VERSION with proper timer management
     function scheduler() {
         console.log("Single mode scheduler called, isPlaying:", isPlaying, "currentMode:", currentMode, "currentHeartRate:", currentHeartRate);
         
         if (!isPlaying || currentMode !== 'single') {
             console.log("Single mode scheduler stopping - isPlaying:", isPlaying, "currentMode:", currentMode);
+            singleModeTimerID = null;
             return;
         }
         
         if (currentHeartRate === null) {
             console.log("Scheduler: No heart rate data available, currentHeartRate:", currentHeartRate);
+            // Continue the scheduler loop even without data
+            singleModeTimerID = setTimeout(scheduler, 25);
             return;
         }
 
@@ -676,7 +676,8 @@ function initializeApp() {
             nextNoteTime += secondsPerBeat;
         }
 
-        setTimeout(scheduler, 25);
+        // CRITICAL FIX: Always continue the scheduler loop with proper timer management
+        singleModeTimerID = setTimeout(scheduler, 25);
     }
 
     // 5-beat mode scheduler
@@ -751,7 +752,7 @@ function initializeApp() {
                 nextNoteTime = audioContext.currentTime;
                 updateStatus(`Playing: tempo ${Math.round(currentHeartRate)} BPM, pitch based on breathing rate`);
                 
-                console.log("Starting single mode scheduler...");
+                console.log("Starting single mode scheduler with nextNoteTime:", nextNoteTime);
                 scheduler();
             } else {
                 console.log("5-beat mode playback");
@@ -807,6 +808,13 @@ function initializeApp() {
             
             // Stop playing
             isPlaying = false;
+            
+            // Stop single mode timer
+            if (singleModeTimerID) {
+                console.log("Stopping single mode timer");
+                clearTimeout(singleModeTimerID);
+                singleModeTimerID = null;
+            }
             
             // Stop all channel timers
             channels.forEach((channel, index) => {
@@ -918,23 +926,6 @@ function initializeApp() {
     midiNoteSelect.addEventListener('change', function() {
         midiNote = parseInt(this.value);
     });
-
-    // Remove the old data source event listeners since we no longer need them
-    
-    // 5-Beat mode now automatically uses all 4 pre-recorded loops
-    // dataSourceSelect.addEventListener('change', function() {
-    //     if (currentMode === 'fivebeat') {
-    //         updateChannelVariations();
-    //     }
-    // });
-
-    // loopOffsetSlider.addEventListener('input', function(e) {
-    //     const offsetValue = parseInt(e.target.value);
-    //     offsetValueDisplay.textContent = `${offsetValue}s`;
-    //     if (currentMode === 'fivebeat') {
-    //         updateChannelVariations();
-    //     }
-    // });
 
     // Channel enable/disable and MIDI channel assignment listeners
     for (let i = 1; i <= 5; i++) {
