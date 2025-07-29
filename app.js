@@ -396,7 +396,16 @@ function initializeApp() {
             const feedInfo = await response.json();
             
             if (feedInfo && feedInfo.last_value) {
-                breathingRate = parseFloat(feedInfo.last_value);
+                const rawBreathingRate = parseFloat(feedInfo.last_value);
+                
+                // Validate breathing rate and provide fallback
+                if (isNaN(rawBreathingRate) || rawBreathingRate <= 0 || rawBreathingRate > 50) {
+                    console.warn(`Invalid breathing rate received: ${feedInfo.last_value}, using fallback value 14`);
+                    breathingRate = 14; // Normal breathing rate fallback
+                } else {
+                    breathingRate = rawBreathingRate;
+                }
+                
                 const timestamp = new Date().toLocaleTimeString();
 
                 if (currentMode === 'single') {
@@ -464,17 +473,36 @@ function initializeApp() {
             const currentLoopData = prerecordedData[channel.currentLoop];
             const variation = 0.95 + Math.random() * 0.1; // ±5% random variation
             
-            channel.heartRate = Math.round(currentLoopData.heart_rate[channel.loopIndex] * variation);
-            channel.breathingRate = currentLoopData.breathing_rate[channel.loopIndex] * variation;
+            const rawHeartRate = currentLoopData.heart_rate[channel.loopIndex] * variation;
+            const rawBreathingRate = currentLoopData.breathing_rate[channel.loopIndex] * variation;
+            
+            // Validate and sanitize heart rate
+            if (isNaN(rawHeartRate) || rawHeartRate <= 30 || rawHeartRate > 200) {
+                console.warn(`Invalid heart rate for channel ${i + 1}: ${rawHeartRate}, using fallback 75`);
+                channel.heartRate = 75; // Fallback heart rate
+            } else {
+                channel.heartRate = Math.round(rawHeartRate);
+            }
+            
+            // Validate and sanitize breathing rate
+            if (isNaN(rawBreathingRate) || rawBreathingRate <= 0 || rawBreathingRate > 50) {
+                console.warn(`Invalid breathing rate for channel ${i + 1}: ${rawBreathingRate}, using fallback 14`);
+                channel.breathingRate = 14; // Fallback breathing rate
+            } else {
+                channel.breathingRate = rawBreathingRate;
+            }
+            
             channel.targetHeartRate = channel.heartRate;
             channel.targetBreathingRate = channel.breathingRate;
             
-            if (channel.currentHeartRate === null) {
+            if (channel.currentHeartRate === null || isNaN(channel.currentHeartRate)) {
                 channel.currentHeartRate = channel.heartRate;
+            }
+            if (channel.currentBreathingRate === null || isNaN(channel.currentBreathingRate)) {
                 channel.currentBreathingRate = channel.breathingRate;
             }
             
-            // Update UI
+            // Update UI with validated values
             document.getElementById(`ch${i + 1}-heart-rate`).textContent = `${channel.heartRate} BPM`;
             document.getElementById(`ch${i + 1}-breathing-rate`).textContent = `${channel.breathingRate.toFixed(1)} br/min`;
             
@@ -541,8 +569,8 @@ function initializeApp() {
         if (!isPlaying) return;
 
         if (currentMode === 'single') {
-            // Single mode interpolation
-            if (currentHeartRate !== null && targetHeartRate !== null) {
+            // Single mode interpolation with NaN protection
+            if (currentHeartRate !== null && targetHeartRate !== null && !isNaN(currentHeartRate) && !isNaN(targetHeartRate)) {
                 if (Math.abs(currentHeartRate - targetHeartRate) < 0.1) {
                     currentHeartRate = targetHeartRate;
                 } else {
@@ -550,7 +578,7 @@ function initializeApp() {
                 }
             }
 
-            if (currentBreathingRate !== null && targetBreathingRate !== null) {
+            if (currentBreathingRate !== null && targetBreathingRate !== null && !isNaN(currentBreathingRate) && !isNaN(targetBreathingRate)) {
                 if (Math.abs(currentBreathingRate - targetBreathingRate) < 0.1) {
                     currentBreathingRate = targetBreathingRate;
                 } else {
@@ -558,13 +586,25 @@ function initializeApp() {
                 }
             }
             
+            // Validate current values and provide fallbacks if NaN
+            if (isNaN(currentHeartRate) || currentHeartRate <= 0) {
+                console.warn("Current heart rate became NaN or invalid, resetting to 75");
+                currentHeartRate = 75;
+                targetHeartRate = 75;
+            }
+            if (isNaN(currentBreathingRate) || currentBreathingRate <= 0) {
+                console.warn("Current breathing rate became NaN or invalid, resetting to 14");
+                currentBreathingRate = 14;
+                targetBreathingRate = 14;
+            }
+            
             if (currentHeartRate && currentBreathingRate) {
                 updateStatus(`Playing: tempo ${Math.round(currentHeartRate)} BPM, pitch offset based on breathing rate (${currentBreathingRate.toFixed(1)} breaths/min)`);
             }
         } else {
-            // 5-beat mode interpolation
-            channels.forEach(channel => {
-                if (channel.currentHeartRate !== null && channel.targetHeartRate !== null) {
+            // 5-beat mode interpolation with NaN protection
+            channels.forEach((channel, index) => {
+                if (channel.currentHeartRate !== null && channel.targetHeartRate !== null && !isNaN(channel.currentHeartRate) && !isNaN(channel.targetHeartRate)) {
                     if (Math.abs(channel.currentHeartRate - channel.targetHeartRate) < 0.1) {
                         channel.currentHeartRate = channel.targetHeartRate;
                     } else {
@@ -572,12 +612,24 @@ function initializeApp() {
                     }
                 }
 
-                if (channel.currentBreathingRate !== null && channel.targetBreathingRate !== null) {
+                if (channel.currentBreathingRate !== null && channel.targetBreathingRate !== null && !isNaN(channel.currentBreathingRate) && !isNaN(channel.targetBreathingRate)) {
                     if (Math.abs(channel.currentBreathingRate - channel.targetBreathingRate) < 0.1) {
                         channel.currentBreathingRate = channel.targetBreathingRate;
                     } else {
                         channel.currentBreathingRate += (channel.targetBreathingRate - channel.currentBreathingRate) * 0.1;
                     }
+                }
+                
+                // Validate channel values and provide fallbacks if NaN
+                if (isNaN(channel.currentHeartRate) || channel.currentHeartRate <= 0) {
+                    console.warn(`Channel ${index + 1} heart rate became NaN or invalid, resetting to 75`);
+                    channel.currentHeartRate = 75;
+                    channel.targetHeartRate = 75;
+                }
+                if (isNaN(channel.currentBreathingRate) || channel.currentBreathingRate <= 0) {
+                    console.warn(`Channel ${index + 1} breathing rate became NaN or invalid, resetting to 14`);
+                    channel.currentBreathingRate = 14;
+                    channel.targetBreathingRate = 14;
                 }
             });
         }
@@ -588,14 +640,26 @@ function initializeApp() {
         let noteValue = parseInt(midiNoteSelect.value);
         let pitchOffset = 0;
         
-        if (currentBreathingRate !== null) {
+        if (currentBreathingRate !== null && !isNaN(currentBreathingRate) && currentBreathingRate > 0) {
             const normalBreathingRate = 14;
             const maxPitchChange = pitchRange / 2;
             pitchOffset = ((currentBreathingRate - normalBreathingRate) / normalBreathingRate) * maxPitchChange;
             pitchOffset = Math.max(-maxPitchChange, Math.min(maxPitchChange, pitchOffset));
+            
+            // Additional safety check for pitchOffset
+            if (isNaN(pitchOffset)) {
+                console.warn("Pitch offset became NaN, using 0");
+                pitchOffset = 0;
+            }
         }
 
         const adjustedNote = noteValue + pitchOffset;
+        
+        // Final safety check for adjustedNote
+        if (isNaN(adjustedNote)) {
+            console.warn("Adjusted note became NaN, using base note");
+            adjustedNote = noteValue;
+        }
 
         if (usingMIDI && selectedMidiOutput) {
             const roundedNote = Math.round(adjustedNote);
