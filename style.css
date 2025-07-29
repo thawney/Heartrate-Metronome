@@ -1,6 +1,40 @@
+/* Dark mode base styles inspired by thawney.com */
+body {
+    background-color: #232323;
+    color: #ffffff;
+}
+
+/* Container and card styling */
+.container {
+    background-color: #232323;
+}
+
+.bg-white {
+    background-color: #2a2a2a !important;
+    border: 1px solid #333333;
+}
+
+.bg-gray-100 {
+    background-color: #232323 !important;
+}
+
+.bg-gray-50 {
+    background-color: #2f2f2f !important;
+    border-color: #333333 !important;
+}
+
+.text-gray-700, .text-gray-600, .text-gray-500 {
+    color: #ffffff !important;
+}
+
+.text-gray-900 {
+    color: #ffffff !important;
+}
+
+/* Heart pulse animation */
 .heart-pulse {
     animation: heartbeat 1s infinite;
-    color: #ef4444; /* Red-500 */
+    color: #ffc60a; /* Changed to match theme */
 }
 
 @keyframes heartbeat {
@@ -11,10 +45,10 @@
     60% { transform: scale(1); }
 }
 
-/* Breathing animation for the breathing icon */
+/* Breathing animation */
 .breathing-icon {
     animation: breathing 4s infinite ease-in-out;
-    color: #ffc60a; /* Yellow custom color */
+    color: #ffc60a;
 }
 
 @keyframes breathing {
@@ -24,22 +58,32 @@
     100% { transform: scale(0.9); opacity: 0.7; }
 }
 
+/* MIDI device styling */
 .midi-device {
     transition: all 0.2s ease;
+    background-color: #2f2f2f;
+    border: 1px solid #333333;
+    color: #ffffff;
 }
 
 .midi-device:hover {
-    background-color: #f0f9ff;
+    background-color: #404040;
+    border-color: #ffc60a;
 }
 
 .midi-device.selected {
-    background-color: #bfdbfe;
-    border-color: #3b82f6;
+    background-color: #ffc60a;
+    border-color: #ffc60a;
+    color: #232323;
 }
 
+/* Channel cards with original colors but dark theme */
 .channel-card {
     border-left: 4px solid;
     transition: all 0.2s ease;
+    background-color: #2f2f2f !important;
+    border: 1px solid #333333 !important;
+    border-left: 4px solid;
 }
 
 .channel-card.channel-1 { border-left-color: #ef4444; }
@@ -49,41 +93,184 @@
 .channel-card.channel-5 { border-left-color: #3b82f6; }
 
 .channel-card.playing {
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 10px rgba(255, 198, 10, 0.3);
     transform: scale(1.02);
 }
 
-/* Add smooth transitions */
-button, input, select {
+/* Button styling */
+button {
     transition: all 0.2s ease;
+    border: none;
 }
 
-/* Focus styles for better accessibility */
-input:focus, select:focus, button:focus {
-    outline: none;
-    ring: 2px;
-    ring-color: #3b82f6;
-}
-
-/* Styles for the charts */
-canvas {
-    width: 100%;
-    height: 100%;
-}
-
-/* Mode toggle styling - FIXED: Added proper styling for 5-beat mode button */
+/* Mode toggle buttons */
 .mode-toggle {
-    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    background: #333333;
+    border: 1px solid #333333;
+}
+
+#single-mode-btn {
+    background-color: #ffc60a !important;
+    color: #232323 !important;
+    border: none !important;
+    font-weight: 600;
+}
+
+#single-mode-btn.text-gray-600 {
+    background-color: #404040 !important;
+    color: #ffffff !important;
 }
 
 #five-beat-mode-btn {
-    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    cursor: pointer;
+    background: linear-gradient(135deg, #ffc60a 0%, #ffb000 100%) !important;
+    color: #232323 !important;
+    border: none !important;
+    font-weight: 600;
+}
+
+#five-beat-mode-btn.text-gray-600 {
+    background: #404040 !important;
+    color: #ffffff !important;
 }
 
 #five-beat-mode-btn:hover {
-    background: linear-gradient(45deg, #5a67d8 0%, #6b46c1 100%);
+    background: linear-gradient(135deg, #ffb000 0%, #ff9500 100%) !important;
+}
+
+/* Form elements */
+input, select, textarea {
+    background-color: #2f2f2f !important;
+    border: 1px solid #333333 !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease;
+}
+
+input:focus, select:focus, button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px #ffc60a !important;
+    border-color: #ffc60a !important;
+}
+
+input[type="checkbox"] {
+    accent-color: #ffc60a;
+    background-color: #2f2f2f;
+}
+
+input[type="range"] {
+    accent-color: #ffc60a;
+}
+
+/* Primary buttons */
+.bg-blue-500 {
+    background-color: #ffc60a !important;
+    color: #232323 !important;
+}
+
+.bg-blue-500:hover, .hover\:bg-blue-600:hover {
+    background-color: #ffb000 !important;
+}
+
+.bg-green-500 {
+    background-color: #ffc60a !important;
+    color: #232323 !important;
+}
+
+.bg-green-500:hover, .hover\:bg-green-600:hover {
+    background-color: #ffb000 !important;
+}
+
+.bg-red-500 {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.bg-red-500:hover, .hover\:bg-red-600:hover {
+    background-color: #b91c1c !important;
+}
+
+/* Alert and message styling */
+.bg-red-100 {
+    background-color: #3f1f1f !important;
+    border-color: #dc2626 !important;
+}
+
+.text-red-700 {
+    color: #ff6b6b !important;
+}
+
+.bg-green-50 {
+    background-color: #1f3f1f !important;
+    border-color: #22c55e !important;
+}
+
+.text-green-700 {
+    color: #4ade80 !important;
+}
+
+/* Channel info boxes styling */
+.bg-red-50 {
+    background-color: #3f1f1f !important;
+}
+
+.bg-orange-50 {
+    background-color: #3f2f1f !important;
+}
+
+.bg-yellow-50 {
+    background-color: #3f3f1f !important;
+}
+
+.bg-blue-50 {
+    background-color: #1f2f3f !important;
+}
+
+.text-red-600 {
+    color: #ef4444 !important;
+}
+
+.text-orange-600 {
+    color: #f97316 !important;
+}
+
+.text-yellow-600 {
+    color: #eab308 !important;
+}
+
+.text-blue-600 {
+    color: #3b82f6 !important;
+}
+
+.text-green-600 {
+    color: #22c55e !important;
+}
+
+/* Heart rate and breathing rate text colors */
+.text-red-500 {
+    color: #ef4444 !important;
+}
+
+.text-orange-500 {
+    color: #f97316 !important;
+}
+
+.text-yellow-500 {
+    color: #eab308 !important;
+}
+
+.text-green-500 {
+    color: #22c55e !important;
+}
+
+.text-blue-500 {
+    color: #3b82f6 !important;
+}
+
+/* Charts styling */
+canvas {
+    width: 100%;
+    height: 100%;
+    background-color: #2f2f2f;
+    border-radius: 8px;
 }
 
 /* Pulse effect for the update button when auto-updating */
@@ -96,4 +283,91 @@ canvas {
     80% { opacity: 1; }
     90% { opacity: 0.6; }
     100% { opacity: 1; }
+}
+
+/* Scrollbar styling for webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2f2f2f;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ffc60a;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #ffb000;
+}
+
+/* Link styling */
+a {
+    color: #ffc60a;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: #ffb000;
+    text-decoration: underline;
+}
+
+/* Shadow adjustments for dark mode */
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Divide styling */
+.divide-y > * + * {
+    border-top-color: #404040;
+}
+
+/* Border colors */
+.border-gray-300, .border-gray-200 {
+    border-color: #404040 !important;
+}
+
+/* Form checkbox and radio styling */
+.form-checkbox {
+    background-color: #2f2f2f;
+    border-color: #404040;
+}
+
+.form-checkbox:checked {
+    background-color: #ffc60a;
+    border-color: #ffc60a;
+}
+
+/* Additional text styling for better contrast */
+.text-sm {
+    color: #cccccc;
+}
+
+.text-xs {
+    color: #aaaaaa;
+}
+
+/* Heart and breathing rate specific styling to match theme */
+[style*="color: #ffc60a"] {
+    color: #ffc60a !important;
+}
+
+/* Feather icons color adjustment */
+[data-feather] {
+    color: #cccccc;
+}
+
+/* Special styling for the thawney link */
+.text-center a[href*="thawney.com"] {
+    color: #ffc60a !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.text-center a[href*="thawney.com"]:hover {
+    color: #ffb000 !important;
+    text-shadow: 0 0 10px rgba(255, 198, 10, 0.3);
 }

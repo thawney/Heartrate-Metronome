@@ -122,6 +122,10 @@ function initializeApp() {
     let breathingRateHistory = [];
     let autoUpdateInterval = null;
     
+    // Silent oscillator for preventing Chrome throttling
+    let keepAliveOscillator = null;
+    let keepAliveGain = null;
+    
     // Single mode interpolation state
     let currentHeartRate = null;
     let targetHeartRate = null;
@@ -153,6 +157,46 @@ function initializeApp() {
 
     // Available loops for random selection
     const availableLoops = ['loop1', 'loop2', 'loop3', 'loop4'];
+    
+    // Silent oscillator functions to prevent Chrome throttling
+    function startKeepAliveOscillator() {
+        if (!audioContext || keepAliveOscillator) {
+            console.log('Keep-alive oscillator already running or no audio context');
+            return;
+        }
+        
+        try {
+            console.log('Starting keep-alive oscillator to prevent Chrome throttling...');
+            keepAliveOscillator = audioContext.createOscillator();
+            keepAliveGain = audioContext.createGain();
+            
+            // Create a very quiet, very low frequency tone that won't be audible
+            keepAliveOscillator.frequency.value = 20; // 20Hz - below human hearing
+            keepAliveGain.gain.value = 0.001; // Very quiet
+            
+            keepAliveOscillator.connect(keepAliveGain);
+            keepAliveGain.connect(audioContext.destination);
+            
+            keepAliveOscillator.start();
+            console.log('Keep-alive oscillator started successfully');
+        } catch (error) {
+            console.error('Failed to start keep-alive oscillator:', error);
+        }
+    }
+    
+    function stopKeepAliveOscillator() {
+        if (keepAliveOscillator) {
+            try {
+                console.log('Stopping keep-alive oscillator...');
+                keepAliveOscillator.stop();
+                keepAliveOscillator = null;
+                keepAliveGain = null;
+                console.log('Keep-alive oscillator stopped');
+            } catch (error) {
+                console.error('Error stopping keep-alive oscillator:', error);
+            }
+        }
+    }
     
     // Function to randomly assign a new loop to a channel
     function assignRandomLoop(channelIndex) {
@@ -701,7 +745,7 @@ function initializeApp() {
         channel.timerID = setTimeout(() => channelScheduler(channelIndex), 25);
     }
 
-    // Toggle play/pause
+    // Toggle play/pause - ENHANCED WITH KEEP-ALIVE OSCILLATOR
     async function togglePlayback() {
         console.log("togglePlayback called, isPlaying:", isPlaying, "currentMode:", currentMode);
         
@@ -717,6 +761,9 @@ function initializeApp() {
                 await audioContext.resume();
             }
 
+            // START THE KEEP-ALIVE OSCILLATOR TO PREVENT CHROME THROTTLING
+            startKeepAliveOscillator();
+
             if (currentMode === 'single') {
                 console.log("Single mode playback");
                 
@@ -728,6 +775,7 @@ function initializeApp() {
                     if (!rate) {
                         console.log("Failed to get heart rate, aborting playback");
                         isPlaying = false; // Reset on failure
+                        stopKeepAliveOscillator(); // Stop keep-alive on failure
                         return;
                     }
                 }
@@ -808,6 +856,9 @@ function initializeApp() {
             
             // Stop playing
             isPlaying = false;
+            
+            // STOP THE KEEP-ALIVE OSCILLATOR
+            stopKeepAliveOscillator();
             
             // Stop single mode timer
             if (singleModeTimerID) {
