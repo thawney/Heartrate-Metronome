@@ -49,6 +49,14 @@ function initializeApp() {
     const singleModeInstructions = document.getElementById('single-mode-instructions');
     const fiveBeatInstructions = document.getElementById('five-beat-instructions');
 
+    // 5-Beat mode data source switching elements
+    const liveDataBtn = document.getElementById('live-data-btn');
+    const mixedDataBtn = document.getElementById('mixed-data-btn');
+    const liveDataInfo = document.getElementById('live-data-info');
+    const mixedDataInfo = document.getElementById('mixed-data-info');
+    const liveDataDescription = document.getElementById('live-data-description');
+    const mixedDataDescription = document.getElementById('mixed-data-description');
+
     // Chart setup
     const ctx = document.getElementById('heart-rate-chart').getContext('2d');
     const heartRateChart = new Chart(ctx, {
@@ -108,6 +116,7 @@ function initializeApp() {
 
     // Application state
     let currentMode = 'single'; // 'single' or 'fivebeat'
+    let fiveBeatDataMode = 'live'; // 'live' (all live data) or 'mixed' (ch1 live, ch2-5 recorded)
     let heartRate = null;
     let breathingRate = null;
     let isPlaying = false;
@@ -198,13 +207,61 @@ function initializeApp() {
         }
     }
     
-    // Function to randomly assign a new loop to a channel
+    // Function to randomly assign a new loop to a channel (for mixed mode)
     function assignRandomLoop(channelIndex) {
         const randomLoopName = availableLoops[Math.floor(Math.random() * availableLoops.length)];
         channels[channelIndex].currentLoop = randomLoopName;
         channels[channelIndex].loopIndex = Math.floor(Math.random() * prerecordedData[randomLoopName].heart_rate.length);
         console.log(`Channel ${channelIndex + 1} assigned to ${randomLoopName} starting at index ${channels[channelIndex].loopIndex}`);
         return randomLoopName;
+    }
+
+    // Data source mode switching for 5-beat mode
+    function switchToLiveData() {
+        fiveBeatDataMode = 'live';
+        liveDataBtn.classList.add('bg-white', 'shadow-sm');
+        liveDataBtn.classList.remove('text-gray-600');
+        mixedDataBtn.classList.remove('bg-white', 'shadow-sm');
+        mixedDataBtn.classList.add('text-gray-600');
+        
+        liveDataInfo.classList.remove('hidden');
+        mixedDataInfo.classList.add('hidden');
+        liveDataDescription.classList.remove('hidden');
+        mixedDataDescription.classList.add('hidden');
+        
+        // Update source labels
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`ch${i}-source`).textContent = `Live API Ch${i.toString().padStart(2, '0')}`;
+        }
+        
+        if (isPlaying) {
+            togglePlayback(); // Restart if playing
+            setTimeout(() => togglePlayback(), 100);
+        }
+    }
+
+    function switchToMixedData() {
+        fiveBeatDataMode = 'mixed';
+        mixedDataBtn.classList.add('bg-white', 'shadow-sm');
+        mixedDataBtn.classList.remove('text-gray-600');
+        liveDataBtn.classList.remove('bg-white', 'shadow-sm');
+        liveDataBtn.classList.add('text-gray-600');
+        
+        liveDataInfo.classList.add('hidden');
+        mixedDataInfo.classList.remove('hidden');
+        liveDataDescription.classList.add('hidden');
+        mixedDataDescription.classList.remove('hidden');
+        
+        // Update source labels
+        document.getElementById('ch1-source').textContent = 'Live API Ch01';
+        for (let i = 2; i <= 5; i++) {
+            document.getElementById(`ch${i}-source`).textContent = 'Random Loop';
+        }
+        
+        if (isPlaying) {
+            togglePlayback(); // Restart if playing
+            setTimeout(() => togglePlayback(), 100);
+        }
     }
 
     // Mode switching - FIXED: Proper event handling and CSS classes
@@ -318,12 +375,13 @@ function initializeApp() {
         });
     }
 
-    // Fetch heart rate from Adafruit IO - YES, both single mode and Channel 1 of 5-beat mode use the API
-    async function fetchHeartRate() {
-        console.log("fetchHeartRate called");
+    // Fetch heart rate from specific channel
+    async function fetchHeartRateFromChannel(channelNumber) {
+        const channelStr = channelNumber.toString().padStart(2, '0');
+        console.log(`fetchHeartRateFromChannel called for channel ${channelStr}`);
         try {
             hideError();
-            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/proper-time.heart-rate-01`;
+            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/proper-time.heart-rate-${channelStr}`;
             console.log("Fetching from:", url);
             const response = await fetch(url);
 
@@ -332,61 +390,28 @@ function initializeApp() {
             }
             
             const feedInfo = await response.json();
-            console.log("Feed response:", feedInfo);
+            console.log(`Heart rate feed response for channel ${channelStr}:`, feedInfo);
             
             if (feedInfo && feedInfo.last_value) {
-                heartRate = parseFloat(feedInfo.last_value);
-                const timestamp = new Date().toLocaleTimeString();
-                console.log("Parsed heart rate:", heartRate, "at", timestamp);
-
-                if (currentMode === 'single') {
-                    // Single mode - update display and chart
-                    heartRateEl.textContent = `${heartRate} BPM`;
-                    lastUpdateEl.textContent = `Last updated: ${timestamp}`;
-                    updateHeartRateHistory(heartRate, timestamp);
-                    
-                    // Set target for interpolation
-                    targetHeartRate = heartRate;
-                    if (currentHeartRate === null) {
-                        currentHeartRate = heartRate;
-                    }
-                    console.log("Single mode - currentHeartRate set to:", currentHeartRate);
-                } else {
-                    // 5-beat mode - Update Channel 1 (API source)
-                    channels[0].heartRate = heartRate;
-                    channels[0].targetHeartRate = heartRate;
-                    if (channels[0].currentHeartRate === null) {
-                        channels[0].currentHeartRate = heartRate;
-                    }
-                    document.getElementById('ch1-heart-rate').textContent = `${heartRate} BPM`;
-                    console.log("5-beat mode - Channel 1 currentHeartRate set to:", channels[0].currentHeartRate);
-                    
-                    // Update other channels based on variations (only in 5-beat mode)
-                    if (currentMode === 'fivebeat') {
-                        updateChannelVariations();
-                    }
-                }
-                
-                if (!isPlaying) {
-                    updateStatus(`Heart rate: ${heartRate} BPM` + (breathingRate ? `, Breathing rate: ${breathingRate.toFixed(1)} breaths/min` : ''));
-                }
-
+                const heartRate = parseFloat(feedInfo.last_value);
+                console.log(`Parsed heart rate for channel ${channelStr}:`, heartRate);
                 return heartRate;
             } else {
-                throw new Error('Could not find the last_value in the feed info');
+                throw new Error(`Could not find the last_value in the feed info for channel ${channelStr}`);
             }
         } catch (error) {
-            console.error('fetchHeartRate error:', error);
-            showError(`Error fetching heart rate: ${error.message}`);
+            console.error(`fetchHeartRateFromChannel error for channel ${channelStr}:`, error);
+            showError(`Error fetching heart rate from channel ${channelStr}: ${error.message}`);
             return null;
         }
     }
 
-    // Fetch breathing rate from Adafruit IO - YES, both single mode and Channel 1 of 5-beat mode use the API
-    async function fetchBreathingRate() {
+    // Fetch breathing rate from specific channel
+    async function fetchBreathingRateFromChannel(channelNumber) {
+        const channelStr = channelNumber.toString().padStart(2, '0');
         try {
             hideError();
-            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/proper-time.breathing-rate-01`;
+            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/proper-time.breathing-rate-${channelStr}`;
             const response = await fetch(url);
 
             if (!response.ok) {
@@ -400,57 +425,130 @@ function initializeApp() {
                 
                 // Validate breathing rate and provide fallback
                 if (isNaN(rawBreathingRate) || rawBreathingRate <= 0 || rawBreathingRate > 50) {
-                    console.warn(`Invalid breathing rate received: ${feedInfo.last_value}, using fallback value 14`);
-                    breathingRate = 14; // Normal breathing rate fallback
+                    console.warn(`Invalid breathing rate received from channel ${channelStr}: ${feedInfo.last_value}, using fallback value 14`);
+                    return 14; // Normal breathing rate fallback
                 } else {
-                    breathingRate = rawBreathingRate;
+                    return rawBreathingRate;
                 }
-                
-                const timestamp = new Date().toLocaleTimeString();
-
-                if (currentMode === 'single') {
-                    // Single mode - update display and chart
-                    breathingRateEl.textContent = `${breathingRate.toFixed(1)} breaths/min`;
-                    updateBreathingRateHistory(breathingRate, timestamp);
-                    
-                    // Set target for interpolation
-                    targetBreathingRate = breathingRate;
-                    if (currentBreathingRate === null) {
-                        currentBreathingRate = breathingRate;
-                    }
-                } else {
-                    // 5-beat mode - Update Channel 1 (API source)
-                    channels[0].breathingRate = breathingRate;
-                    channels[0].targetBreathingRate = breathingRate;
-                    if (channels[0].currentBreathingRate === null) {
-                        channels[0].currentBreathingRate = breathingRate;
-                    }
-                    document.getElementById('ch1-breathing-rate').textContent = `${breathingRate.toFixed(1)} br/min`;
-                    
-                    // Update other channels based on variations (only in 5-beat mode)
-                    if (currentMode === 'fivebeat') {
-                        updateChannelVariations();
-                    }
-                }
-                
-                if (!isPlaying) {
-                    updateStatus(`Heart rate: ${heartRate || '--'} BPM, Breathing rate: ${breathingRate.toFixed(1)} breaths/min`);
-                }
-
-                return breathingRate;
             } else {
-                throw new Error('Could not find the last_value in the feed info');
+                throw new Error(`Could not find the last_value in the feed info for channel ${channelStr}`);
             }
         } catch (error) {
-            showError(`Error fetching breathing rate: ${error.message}`);
-            console.error('Error fetching breathing rate:', error);
+            showError(`Error fetching breathing rate from channel ${channelStr}: ${error.message}`);
+            console.error(`Error fetching breathing rate from channel ${channelStr}:`, error);
             return null;
         }
     }
 
-    // Update channel variations for 5-beat mode
+    // Fetch heart rate for single mode (uses channel 01)
+    async function fetchHeartRate() {
+        const heartRate = await fetchHeartRateFromChannel(1);
+        if (heartRate !== null) {
+            const timestamp = new Date().toLocaleTimeString();
+            heartRateEl.textContent = `${heartRate} BPM`;
+            lastUpdateEl.textContent = `Last updated: ${timestamp}`;
+            updateHeartRateHistory(heartRate, timestamp);
+            
+            // Set target for interpolation
+            targetHeartRate = heartRate;
+            if (currentHeartRate === null) {
+                currentHeartRate = heartRate;
+            }
+            
+            if (!isPlaying) {
+                updateStatus(`Heart rate: ${heartRate} BPM` + (breathingRate ? `, Breathing rate: ${breathingRate.toFixed(1)} breaths/min` : ''));
+            }
+        }
+        return heartRate;
+    }
+
+    // Fetch breathing rate for single mode (uses channel 01)
+    async function fetchBreathingRate() {
+        const breathingRate = await fetchBreathingRateFromChannel(1);
+        if (breathingRate !== null) {
+            const timestamp = new Date().toLocaleTimeString();
+            breathingRateEl.textContent = `${breathingRate.toFixed(1)} breaths/min`;
+            updateBreathingRateHistory(breathingRate, timestamp);
+            
+            // Set target for interpolation
+            targetBreathingRate = breathingRate;
+            if (currentBreathingRate === null) {
+                currentBreathingRate = breathingRate;
+            }
+            
+            if (!isPlaying) {
+                updateStatus(`Heart rate: ${heartRate || '--'} BPM, Breathing rate: ${breathingRate.toFixed(1)} breaths/min`);
+            }
+        }
+        return breathingRate;
+    }
+
+    // Fetch all channel data for 5-beat mode
+    async function fetchAllChannelData() {
+        console.log(`fetchAllChannelData called for mode: ${fiveBeatDataMode}`);
+        
+        if (fiveBeatDataMode === 'live') {
+            // Live mode - fetch all 5 channels from API
+            for (let i = 0; i < 5; i++) {
+                const channelNumber = i + 1;
+                const heartRate = await fetchHeartRateFromChannel(channelNumber);
+                const breathingRate = await fetchBreathingRateFromChannel(channelNumber);
+                
+                if (heartRate !== null) {
+                    channels[i].heartRate = heartRate;
+                    channels[i].targetHeartRate = heartRate;
+                    if (channels[i].currentHeartRate === null) {
+                        channels[i].currentHeartRate = heartRate;
+                    }
+                    document.getElementById(`ch${i + 1}-heart-rate`).textContent = `${heartRate} BPM`;
+                }
+                
+                if (breathingRate !== null) {
+                    channels[i].breathingRate = breathingRate;
+                    channels[i].targetBreathingRate = breathingRate;
+                    if (channels[i].currentBreathingRate === null) {
+                        channels[i].currentBreathingRate = breathingRate;
+                    }
+                    document.getElementById(`ch${i + 1}-breathing-rate`).textContent = `${breathingRate.toFixed(1)} br/min`;
+                }
+                
+                console.log(`Updated channel ${channelNumber} with live data: HR=${heartRate}, BR=${breathingRate}`);
+            }
+        } else {
+            // Mixed mode - Channel 1 from API, Channels 2-5 from recorded data
+            
+            // Channel 1: Live API data
+            const ch1HeartRate = await fetchHeartRateFromChannel(1);
+            const ch1BreathingRate = await fetchBreathingRateFromChannel(1);
+            
+            if (ch1HeartRate !== null) {
+                channels[0].heartRate = ch1HeartRate;
+                channels[0].targetHeartRate = ch1HeartRate;
+                if (channels[0].currentHeartRate === null) {
+                    channels[0].currentHeartRate = ch1HeartRate;
+                }
+                document.getElementById('ch1-heart-rate').textContent = `${ch1HeartRate} BPM`;
+            }
+            
+            if (ch1BreathingRate !== null) {
+                channels[0].breathingRate = ch1BreathingRate;
+                channels[0].targetBreathingRate = ch1BreathingRate;
+                if (channels[0].currentBreathingRate === null) {
+                    channels[0].currentBreathingRate = ch1BreathingRate;
+                }
+                document.getElementById('ch1-breathing-rate').textContent = `${ch1BreathingRate.toFixed(1)} br/min`;
+            }
+            
+            // Channels 2-5: Recorded data with variations
+            updateChannelVariations();
+            
+            console.log('Updated Channel 1 with live data and Channels 2-5 with recorded data');
+        }
+    }
+
+    // Update channel variations for mixed mode (channels 2-5)
     function updateChannelVariations() {
-        console.log("updateChannelVariations called for 5-beat mode only");
+        console.log("updateChannelVariations called for mixed mode channels 2-5");
         
         // Only update channels 2-5 with their assigned loops (skip channel 1 which uses API)
         for (let i = 1; i < 5; i++) {
@@ -512,7 +610,7 @@ function initializeApp() {
             channel.loopIndex++;
         }
         
-        console.log("updateChannelVariations completed, all channels updated");
+        console.log("updateChannelVariations completed for channels 2-5");
     }
 
     // Update history functions (for single mode)
@@ -829,7 +927,7 @@ function initializeApp() {
             startKeepAliveOscillator();
 
             if (currentMode === 'single') {
-                console.log("Single mode playback");
+                console.log("Single mode playbook");
                 
                 // Single mode - get current rates
                 if (!heartRate) {
@@ -870,11 +968,7 @@ function initializeApp() {
                 console.log("5-beat mode playback");
                 
                 // 5-beat mode - initialize all channels
-                if (!channels[0].heartRate) {
-                    console.log("No channel 1 heart rate data, fetching...");
-                    await fetchHeartRate();
-                    await fetchBreathingRate();
-                }
+                await fetchAllChannelData();
 
                 console.log("Channel states before starting:", channels.map(ch => ({
                     id: ch.id,
@@ -896,7 +990,8 @@ function initializeApp() {
                 });
 
                 const enabledChannels = channels.filter(ch => ch.enabled).length;
-                updateStatus(`Playing 5-Beat Mode: ${enabledChannels} channels active`);
+                const modeText = fiveBeatDataMode === 'live' ? 'Live Data' : 'Mixed Mode';
+                updateStatus(`Playing 5-Beat Mode (${modeText}): ${enabledChannels} channels active`);
             }
 
             // Start interpolation
@@ -960,7 +1055,8 @@ function initializeApp() {
                     updateStatus('Ready to play');
                 }
             } else {
-                updateStatus('5-Beat Mode ready');
+                const modeText = fiveBeatDataMode === 'live' ? 'Live Data' : 'Mixed Mode';
+                updateStatus(`5-Beat Mode (${modeText}) ready`);
             }
             
             console.log("Playback stopped");
@@ -975,13 +1071,21 @@ function initializeApp() {
 
         const intervalSeconds = parseInt(updateIntervalSelect.value);
 
-        fetchHeartRate();
-        fetchBreathingRate();
-        
-        autoUpdateInterval = setInterval(() => {
+        if (currentMode === 'single') {
             fetchHeartRate();
             fetchBreathingRate();
-        }, intervalSeconds * 1000);
+            
+            autoUpdateInterval = setInterval(() => {
+                fetchHeartRate();
+                fetchBreathingRate();
+            }, intervalSeconds * 1000);
+        } else {
+            fetchAllChannelData();
+            
+            autoUpdateInterval = setInterval(() => {
+                fetchAllChannelData();
+            }, intervalSeconds * 1000);
+        }
     }
 
     function stopAutoUpdate() {
@@ -1008,10 +1112,16 @@ function initializeApp() {
     // Event listeners - FIXED: Proper button event handling
     singleModeBtn.addEventListener('click', switchToSingleMode);
     fiveBeatModeBtn.addEventListener('click', switchToFiveBeatMode);
+    liveDataBtn.addEventListener('click', switchToLiveData);
+    mixedDataBtn.addEventListener('click', switchToMixedData);
 
     updateBtn.addEventListener('click', () => {
-        fetchHeartRate();
-        fetchBreathingRate();
+        if (currentMode === 'single') {
+            fetchHeartRate();
+            fetchBreathingRate();
+        } else {
+            fetchAllChannelData();
+        }
     });
     
     playBtn.addEventListener('click', togglePlayback);
@@ -1062,7 +1172,8 @@ function initializeApp() {
             // Update status
             if (isPlaying && currentMode === 'fivebeat') {
                 const enabledChannels = channels.filter(ch => ch.enabled).length;
-                updateStatus(`Playing 5-Beat Mode: ${enabledChannels} channels active`);
+                const modeText = fiveBeatDataMode === 'live' ? 'Live Data' : 'Mixed Mode';
+                updateStatus(`Playing 5-Beat Mode (${modeText}): ${enabledChannels} channels active`);
             }
         });
 
@@ -1079,10 +1190,17 @@ function initializeApp() {
     if (autoUpdateCheckbox.checked) {
         startAutoUpdate();
     } else {
-        fetchHeartRate();
-        fetchBreathingRate();
+        if (currentMode === 'single') {
+            fetchHeartRate();
+            fetchBreathingRate();
+        } else {
+            fetchAllChannelData();
+        }
     }
 
     // Initialize with single mode
     switchToSingleMode();
+    
+    // Initialize 5-beat mode data source to live mode
+    switchToLiveData();
 }

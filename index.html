@@ -73,6 +73,18 @@
 
                     <!-- 5-Beat Mode Content -->
                     <div id="five-beat-mode-content" class="hidden">
+                        <!-- Data Source Toggle for 5-Beat Mode -->
+                        <div class="flex justify-center mb-6">
+                            <div class="bg-gray-200 rounded-lg p-1 flex">
+                                <button id="live-data-btn" class="px-4 py-2 rounded-md bg-white shadow-sm text-sm font-medium">
+                                    Live API Data (All 5 Channels)
+                                </button>
+                                <button id="mixed-data-btn" class="px-4 py-2 rounded-md text-sm font-medium text-gray-600">
+                                    Mixed Mode (Ch1: Live, Ch2-5: Recorded)
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2 gap-4 mb-6">
                             <!-- Channel 1 -->
                             <div class="channel-card channel-1 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -108,7 +120,7 @@
                                             <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch1-breathing-rate">-- br/min</div>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-2">API Source</div>
+                                    <div class="text-xs text-gray-500 mt-2" id="ch1-source">Live API Ch01</div>
                                     <label class="flex items-center justify-center mt-2 text-xs">
                                         <input type="checkbox" id="ch1-enabled" class="mr-1" checked>
                                         <span>Enabled</span>
@@ -150,7 +162,7 @@
                                             <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch2-breathing-rate">-- br/min</div>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <div class="text-xs text-gray-500 mt-2" id="ch2-source">Live API Ch02</div>
                                     <label class="flex items-center justify-center mt-2 text-xs">
                                         <input type="checkbox" id="ch2-enabled" class="mr-1" checked>
                                         <span>Enabled</span>
@@ -192,7 +204,7 @@
                                             <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch3-breathing-rate">-- br/min</div>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <div class="text-xs text-gray-500 mt-2" id="ch3-source">Live API Ch03</div>
                                     <label class="flex items-center justify-center mt-2 text-xs">
                                         <input type="checkbox" id="ch3-enabled" class="mr-1" checked>
                                         <span>Enabled</span>
@@ -234,7 +246,7 @@
                                             <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch4-breathing-rate">-- br/min</div>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <div class="text-xs text-gray-500 mt-2" id="ch4-source">Live API Ch04</div>
                                     <label class="flex items-center justify-center mt-2 text-xs">
                                         <input type="checkbox" id="ch4-enabled" class="mr-1" checked>
                                         <span>Enabled</span>
@@ -276,7 +288,7 @@
                                             <div class="text-sm font-semibold" style="color: #ffc60a;" id="ch5-breathing-rate">-- br/min</div>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-2">Random Loop</div>
+                                    <div class="text-xs text-gray-500 mt-2" id="ch5-source">Live API Ch05</div>
                                     <label class="flex items-center justify-center mt-2 text-xs">
                                         <input type="checkbox" id="ch5-enabled" class="mr-1" checked>
                                         <span>Enabled</span>
@@ -285,38 +297,62 @@
                             </div>
                         </div>
 
-                        <!-- Auto-update and Loop Information -->
+                        <!-- Auto-update and Mode Information -->
                         <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div class="flex items-center mb-4">
                                 <i data-feather="info" class="text-gray-700"></i>
                                 <h2 class="text-lg font-semibold ml-2">5-Beat Mode Data Sources</h2>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                            <div id="live-data-info" class="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
                                 <div class="text-center p-2 bg-red-50 rounded">
                                     <strong class="text-red-600">Channel 1</strong><br>
-                                    Live API Data
+                                    Live API Channel 01
                                 </div>
                                 <div class="text-center p-2 bg-orange-50 rounded">
                                     <strong class="text-orange-600">Channel 2</strong><br>
-                                    Random Loop + Variation
+                                    Live API Channel 02
                                 </div>
                                 <div class="text-center p-2 bg-yellow-50 rounded">
                                     <strong class="text-yellow-600">Channel 3</strong><br>
-                                    Random Loop + Variation
+                                    Live API Channel 03
                                 </div>
                                 <div class="text-center p-2 bg-green-50 rounded">
                                     <strong class="text-green-600">Channel 4</strong><br>
-                                    Random Loop + Variation
+                                    Live API Channel 04
                                 </div>
                                 <div class="text-center p-2 bg-blue-50 rounded">
                                     <strong class="text-blue-600">Channel 5</strong><br>
-                                    Random Loop + Variation
+                                    Live API Channel 05
+                                </div>
+                            </div>
+                            
+                            <div id="mixed-data-info" class="hidden grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                                <div class="text-center p-2 bg-red-50 rounded">
+                                    <strong class="text-red-600">Channel 1</strong><br>
+                                    Live API Channel 01
+                                </div>
+                                <div class="text-center p-2 bg-orange-50 rounded">
+                                    <strong class="text-orange-600">Channel 2</strong><br>
+                                    Recorded Loop + Variation
+                                </div>
+                                <div class="text-center p-2 bg-yellow-50 rounded">
+                                    <strong class="text-yellow-600">Channel 3</strong><br>
+                                    Recorded Loop + Variation
+                                </div>
+                                <div class="text-center p-2 bg-green-50 rounded">
+                                    <strong class="text-green-600">Channel 4</strong><br>
+                                    Recorded Loop + Variation
+                                </div>
+                                <div class="text-center p-2 bg-blue-50 rounded">
+                                    <strong class="text-blue-600">Channel 5</strong><br>
+                                    Recorded Loop + Variation
                                 </div>
                             </div>
                             
                             <p class="text-xs text-gray-600 mt-3 text-center">
-                                Channels 2-5 randomly select from any pre-recorded loop, switching to a new random loop when each one finishes
+                                <span id="live-data-description">All channels use live API data from their respective feeds</span>
+                                <span id="mixed-data-description" class="hidden">Channel 1 uses live API data, Channels 2-5 use pre-recorded loops with random variations</span>
                             </p>
                         </div>
                     </div>
@@ -335,10 +371,10 @@
                             </label>
 
                             <select id="update-interval" class="border-gray-300 rounded-md text-sm">
-                                <option value="5">5 seconds</option>
-                                <option value="10" selected>10 seconds</option>
+                                <option value="12" selected>12 seconds</option>
                                 <option value="30">30 seconds</option>
                                 <option value="60">1 minute</option>
+                                <option value="120">2 minutes</option>
                             </select>
                             
                             <button id="update-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center">
@@ -426,13 +462,13 @@
                 <div id="five-beat-instructions" class="hidden">
                     <ol class="list-decimal ml-6 space-y-2">
                         <li><strong>5-Beat Test Mode:</strong> Creates 5 independent MIDI channels with different rhythms</li>
-                        <li><strong>Channel 1:</strong> Uses live API data as the master rhythm</li>
-                        <li><strong>Channels 2-5:</strong> Use pre-recorded biometric loops with small random variations</li>
+                        <li><strong>Live API Data Mode:</strong> All 5 channels use their respective live API feeds (Channel 01-05)</li>
+                        <li><strong>Mixed Mode:</strong> Channel 1 uses live API data, Channels 2-5 use pre-recorded loops</li>
                         <li><strong>Each Channel:</strong> Has its own heart rate (tempo) and breathing rate (pitch modulation)</li>
-                        <li><strong>Automatic Loops:</strong> Channels 2-5 cycle through different pre-recorded sessions</li>
+                        <li><strong>Data Sources:</strong> Switch between all-live API data or mixed mode (live + recorded)</li>
                         <li><strong>MIDI Routing:</strong> Each channel can send to any MIDI channel (1-16)</li>
                         <li><strong>Enable/Disable:</strong> Toggle individual channels on/off during playback</li>
-                        <li><strong>Random Variation:</strong> ±5% variation added to prevent repetitive patterns</li>
+                        <li><strong>Auto-Update:</strong> Minimum 12-second intervals for API rate limiting</li>
                     </ol>
                 </div>
                 <div class="mt-4 p-3 bg-green-50 text-green-700 rounded-md">
