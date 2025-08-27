@@ -323,7 +323,7 @@ function initializeApp() {
         console.log("fetchHeartRate called");
         try {
             hideError();
-            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/heart-rate`;
+            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/proper-time.heart-rate-01`;
             console.log("Fetching from:", url);
             const response = await fetch(url);
 
@@ -386,7 +386,7 @@ function initializeApp() {
     async function fetchBreathingRate() {
         try {
             hideError();
-            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/breathing-rate`;
+            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/proper-time.breathing-rate-01`;
             const response = await fetch(url);
 
             if (!response.ok) {
