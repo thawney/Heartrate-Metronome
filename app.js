@@ -375,7 +375,7 @@ function initializeApp() {
         });
     }
 
-    // Fetch heart rate from specific channel
+    // Fetch heart rate from specific channel (for 5-beat mode)
     async function fetchHeartRateFromChannel(channelNumber) {
         const channelStr = channelNumber.toString().padStart(2, '0');
         console.log(`fetchHeartRateFromChannel called for channel ${channelStr}`);
@@ -406,7 +406,7 @@ function initializeApp() {
         }
     }
 
-    // Fetch breathing rate from specific channel
+    // Fetch breathing rate from specific channel (for 5-beat mode)
     async function fetchBreathingRateFromChannel(channelNumber) {
         const channelStr = channelNumber.toString().padStart(2, '0');
         try {
@@ -440,47 +440,104 @@ function initializeApp() {
         }
     }
 
-    // Fetch heart rate for single mode (uses channel 01)
+    // Fetch heart rate for single mode (uses dedicated heart-rate feed)
     async function fetchHeartRate() {
-        const heartRate = await fetchHeartRateFromChannel(1);
-        if (heartRate !== null) {
-            const timestamp = new Date().toLocaleTimeString();
-            heartRateEl.textContent = `${heartRate} BPM`;
-            lastUpdateEl.textContent = `Last updated: ${timestamp}`;
-            updateHeartRateHistory(heartRate, timestamp);
-            
-            // Set target for interpolation
-            targetHeartRate = heartRate;
-            if (currentHeartRate === null) {
-                currentHeartRate = heartRate;
+        console.log(`fetchHeartRate called for single mode`);
+        try {
+            hideError();
+            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/heart-rate`;
+            console.log("Fetching from:", url);
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`Adafruit IO returned status code: ${response.status}`);
             }
             
-            if (!isPlaying) {
-                updateStatus(`Heart rate: ${heartRate} BPM` + (breathingRate ? `, Breathing rate: ${breathingRate.toFixed(1)} breaths/min` : ''));
+            const feedInfo = await response.json();
+            console.log(`Heart rate feed response for single mode:`, feedInfo);
+            
+            if (feedInfo && feedInfo.last_value) {
+                heartRate = parseFloat(feedInfo.last_value);
+                console.log(`Parsed heart rate for single mode:`, heartRate);
+                
+                const timestamp = new Date().toLocaleTimeString();
+                heartRateEl.textContent = `${heartRate} BPM`;
+                lastUpdateEl.textContent = `Last updated: ${timestamp}`;
+                updateHeartRateHistory(heartRate, timestamp);
+                
+                // Set target for interpolation
+                targetHeartRate = heartRate;
+                if (currentHeartRate === null) {
+                    currentHeartRate = heartRate;
+                }
+                
+                if (!isPlaying) {
+                    updateStatus(`Heart rate: ${heartRate} BPM` + (breathingRate ? `, Breathing rate: ${breathingRate.toFixed(1)} breaths/min` : ''));
+                }
+                
+                return heartRate;
+            } else {
+                throw new Error(`Could not find the last_value in the feed info for single mode`);
             }
+        } catch (error) {
+            console.error(`fetchHeartRate error for single mode:`, error);
+            showError(`Error fetching heart rate: ${error.message}`);
+            return null;
         }
-        return heartRate;
     }
 
-    // Fetch breathing rate for single mode (uses channel 01)
+    // Fetch breathing rate for single mode (uses dedicated breathing-rate feed)
     async function fetchBreathingRate() {
-        const breathingRate = await fetchBreathingRateFromChannel(1);
-        if (breathingRate !== null) {
-            const timestamp = new Date().toLocaleTimeString();
-            breathingRateEl.textContent = `${breathingRate.toFixed(1)} breaths/min`;
-            updateBreathingRateHistory(breathingRate, timestamp);
-            
-            // Set target for interpolation
-            targetBreathingRate = breathingRate;
-            if (currentBreathingRate === null) {
-                currentBreathingRate = breathingRate;
+        console.log(`fetchBreathingRate called for single mode`);
+        try {
+            hideError();
+            const url = `https://io.adafruit.com/api/v2/Dr_Ew/feeds/breathing-rate`;
+            console.log("Fetching from:", url);
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`Adafruit IO returned status code: ${response.status}`);
             }
             
-            if (!isPlaying) {
-                updateStatus(`Heart rate: ${heartRate || '--'} BPM, Breathing rate: ${breathingRate.toFixed(1)} breaths/min`);
+            const feedInfo = await response.json();
+            console.log(`Breathing rate feed response for single mode:`, feedInfo);
+            
+            if (feedInfo && feedInfo.last_value) {
+                const rawBreathingRate = parseFloat(feedInfo.last_value);
+                
+                // Validate breathing rate and provide fallback
+                if (isNaN(rawBreathingRate) || rawBreathingRate <= 0 || rawBreathingRate > 50) {
+                    console.warn(`Invalid breathing rate received for single mode: ${feedInfo.last_value}, using fallback value 14`);
+                    breathingRate = 14; // Normal breathing rate fallback
+                } else {
+                    breathingRate = rawBreathingRate;
+                }
+                
+                console.log(`Parsed breathing rate for single mode:`, breathingRate);
+                
+                const timestamp = new Date().toLocaleTimeString();
+                breathingRateEl.textContent = `${breathingRate.toFixed(1)} breaths/min`;
+                updateBreathingRateHistory(breathingRate, timestamp);
+                
+                // Set target for interpolation
+                targetBreathingRate = breathingRate;
+                if (currentBreathingRate === null) {
+                    currentBreathingRate = breathingRate;
+                }
+                
+                if (!isPlaying) {
+                    updateStatus(`Heart rate: ${heartRate || '--'} BPM, Breathing rate: ${breathingRate.toFixed(1)} breaths/min`);
+                }
+                
+                return breathingRate;
+            } else {
+                throw new Error(`Could not find the last_value in the feed info for single mode`);
             }
+        } catch (error) {
+            showError(`Error fetching breathing rate: ${error.message}`);
+            console.error(`Error fetching breathing rate for single mode:`, error);
+            return null;
         }
-        return breathingRate;
     }
 
     // Fetch all channel data for 5-beat mode
